@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PES Spectrometer — AP Chemistry</title>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#dce5f5;
+    background:
+      radial-gradient(120% 90% at 12% -10%, #16244a 0%, rgba(22,36,74,0) 55%),
+      radial-gradient(120% 90% at 100% 0%, #1a2540 0%, rgba(26,37,64,0) 50%),
+      #070b18;
+    min-height:100vh; }
+  .pes-root{max-width:1180px;margin:0 auto;padding:22px;}
+  .brand-mark{display:flex;align-items:center;gap:5px;margin-bottom:10px;user-select:none;}
+  .brand-mark svg{flex-shrink:0;}
+  .brand-text{font-size:9.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+    background:linear-gradient(90deg,#F4B860,#FB7185,#B498F5);-webkit-background-clip:text;
+    background-clip:text;color:transparent;}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;}
+  .panel{background:linear-gradient(180deg,rgba(20,30,56,.9),rgba(13,20,40,.92));
+    border:1px solid #21304f;border-radius:14px;}
+  .eyebrow{letter-spacing:.32em;text-transform:uppercase;font-size:10px;color:#6f82ab;font-weight:600;}
+  .header{padding:16px 20px;margin-bottom:16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;}
+  .title{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-top:2px;}
+  .readouts{display:flex;gap:22px;align-items:center;flex-wrap:wrap;}
+  .readout{text-align:right;}
+  .readout .val{font-size:16px;font-weight:600;color:#eaf2ff;margin-top:2px;}
+
+  .tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .tab-btn{font:inherit;font-size:13px;font-weight:600;color:#8194ba;background:#101a32;border:1px solid #283a5e;
+    padding:8px 18px;border-radius:9px;cursor:pointer;}
+  .tab-btn:hover{border-color:#4a6296;}
+  .tab-btn.on{background:#1d3350;color:#eaf2ff;border-color:#4a6296;}
+  .tab-btn:focus-visible{outline:2px solid #46D4C3;outline-offset:2px;}
+
+  .pes-grid{display:grid;gap:16px;grid-template-columns:1.55fr 1fr;}
+  @media (max-width:720px){ .pes-grid{grid-template-columns:minmax(0,1fr);} }
+  .table-wrap{padding:16px;}
+  .table-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .hint{font-size:11px;color:#6f82ab;}
+  #ptable{display:grid;grid-template-columns:repeat(18,1fr);grid-auto-rows:1fr;gap:4px;}
+  .ptbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:1px solid #283a5e;border-radius:7px;background:#101a32;cursor:pointer;
+    transition:transform .12s ease, border-color .12s, background .12s;padding:5px 0 4px;
+    aspect-ratio:1/1;font-family:inherit;color:inherit;}
+  .ptbtn:hover{transform:translateY(-2px);border-color:#4a6296;background:#16233f;}
+  .ptbtn:focus-visible{outline:2px solid #46D4C3;outline-offset:2px;}
+  .ptbtn .z{font-size:8px;color:#67789f;line-height:1;font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;}
+  .ptbtn .sy{font-weight:700;font-size:13px;line-height:1.1;}
+  .ptbtn.aSel{background:#1d3350;border-color:#7fb0ff;box-shadow:0 0 0 1px #7fb0ff inset,0 0 16px -4px #4f8cff;}
+  .ptbtn.bSel{background:#311f49;border-color:#c7a3ff;box-shadow:0 0 0 1px #c7a3ff inset,0 0 16px -4px #9a6bff;}
+  .row{margin-top:13px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
+  .compare-label{display:inline-flex;align-items:center;gap:8px;}
+  .pes-select{font:inherit;font-size:12.5px;font-weight:600;color:#eaf2ff;background:#101a32;
+    border:1px solid #3a4d74;border-radius:8px;padding:6px 30px 6px 11px;cursor:pointer;
+    appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23c7a3ff' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 9px center;}
+  .pes-select:hover{border-color:#c7a3ff;}
+  .pes-select:focus-visible{outline:2px solid #c7a3ff;outline-offset:2px;}
+  .clear-btn{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;color:#c7a3ff;background:transparent;
+    border:1px solid #4a3a6e;border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px;}
+  .note{flex-basis:100%;font-size:11.5px;color:#7d8fb6;line-height:1.5;}
+  .note b{color:#c7a3ff;font-weight:600;}
+  .info-panel{padding:16px;display:flex;flex-direction:column;gap:12px;}
+  .divider{height:1px;background:#21304f;}
+  .config-val{font-size:15px;margin-top:6px;color:#eaf2ff;letter-spacing:.01em;word-break:break-word;}
+  .config-b{font-size:13.5px;margin-top:6px;color:#c7a3ff;word-break:break-word;}
+  ul.legend-list{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:#aab9d8;line-height:1.4;}
+  ul.legend-list b{color:#dce5f5;}
+  .chips{display:flex;gap:8px;margin-top:2px;}
+  .chip{font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;border:1px solid;}
+  .spectrum-panel{padding:14px 16px 6px;margin-top:16px;}
+  .spec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px;}
+  .seg{display:inline-flex;background:#0f1830;border:1px solid #283a5e;border-radius:9px;padding:3px;}
+  .seg button{font:inherit;font-size:12px;font-weight:600;color:#8194ba;background:transparent;border:0;
+    padding:6px 13px;border-radius:6px;cursor:pointer;letter-spacing:.02em;}
+  .seg button.on{background:#21426e;color:#eaf2ff;}
+  .seg button:focus-visible{outline:2px solid #46D4C3;outline-offset:2px;}
+  .axis-controls{display:flex;gap:10px;align-items:center;}
+  .chart-wrap{position:relative;}
+  svg{width:100%;height:auto;display:block;}
+  .trace-line{fill:none;stroke-linejoin:round;stroke-linecap:round;}
+  @keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+  .anim-draw{stroke-dasharray:1;animation:draw 1.05s cubic-bezier(.45,.05,.2,1) forwards;}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .pop{animation:pop .5s ease forwards;opacity:0;}
+  @media (prefers-reduced-motion: reduce){.anim-draw{animation:none;stroke-dasharray:none}.pop{animation:none;opacity:1;}}
+  .tooltip{position:absolute;top:8px;right:8px;max-width:230px;background:rgba(10,16,32,.95);
+    border-radius:10px;padding:10px 12px;pointer-events:none;}
+  .tooltip .tt-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  .tooltip .tt-sub{font-size:17px;font-weight:600;}
+  .tooltip .tt-el{font-size:11px;color:#8194ba;}
+  .tooltip .tt-be{font-size:12.5px;color:#dce5f5;margin-top:4px;}
+  .tooltip .tt-desc{font-size:11.5px;color:#aab9d8;margin-top:6px;line-height:1.4;}
+  .legend-row{display:flex;gap:18px;padding:4px 4px 10px;font-size:12px;color:#9fb0d4;}
+  .legend-row span{display:inline-flex;align-items:center;gap:7px;}
+  .footnote{margin-top:12px;font-size:11px;color:#5f7298;line-height:1.5;}
+  .footnote b{color:#7d8fb6;}
+
+  /* quiz mode */
+  .tier-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  @media (max-width:720px){.tier-grid{grid-template-columns:1fr;}}
+  .tier-card{padding:20px;border-radius:14px;cursor:pointer;border:1px solid #21304f;
+    background:linear-gradient(180deg,rgba(20,30,56,.9),rgba(13,20,40,.92));
+    transition:transform .12s ease, border-color .12s;}
+  .tier-card:hover{transform:translateY(-3px);}
+  .tier-name{font-size:19px;font-weight:700;margin-bottom:5px;}
+  .tier-sub{font-size:12.5px;color:#9fb0d4;line-height:1.45;}
+  .tier-meta{margin-top:13px;font-size:11px;color:#6f82ab;}
+  .quiz-progress{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:12px;color:#8194ba;}
+  .progress-bar{flex:1;height:6px;background:#101a32;border-radius:99px;margin:0 14px;overflow:hidden;}
+  .progress-fill{height:100%;border-radius:99px;transition:width .3s ease;}
+  .q-card{padding:22px;}
+  .q-prompt{font-size:15.5px;line-height:1.55;margin-bottom:16px;}
+  .q-prompt b{color:#eaf2ff;}
+  .q-visual{max-width:340px;margin:0 auto 18px;}
+  .opt-grid-text{display:flex;flex-direction:column;gap:9px;}
+  .opt-grid-visual{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .opt-btn{font:inherit;text-align:left;padding:12px 14px;border-radius:10px;border:1px solid #283a5e;
+    background:#101a32;color:#dce5f5;cursor:pointer;font-size:13.5px;transition:border-color .12s, background .12s;}
+  .opt-btn:hover:not(.locked){border-color:#4a6296;background:#16233f;}
+  .opt-btn.visual{padding:8px;}
+  .opt-btn.correct{border-color:#46D4C3;background:#0e2b28;}
+  .opt-btn.incorrect{border-color:#FB7185;background:#2b1418;}
+  .opt-btn.locked{cursor:default;}
+  .opt-label{font-size:11.5px;color:#9fb0d4;text-align:center;margin-top:6px;}
+  .explain-box{margin-top:16px;padding:13px 15px;border-radius:10px;background:#0f1830;border:1px solid #283a5e;font-size:13px;line-height:1.55;color:#c3cfe6;}
+  .explain-box b{color:#eaf2ff;}
+  .next-btn{margin-top:16px;font:inherit;font-weight:600;font-size:13px;color:#070b18;background:#46D4C3;border:0;border-radius:9px;padding:10px 20px;cursor:pointer;}
+  .next-btn:hover{background:#5fe0d0;}
+  .results-card{padding:32px 24px;text-align:center;}
+  .results-score{font-size:46px;font-weight:700;margin:8px 0;}
+  .results-label{font-size:15px;color:#9fb0d4;margin-bottom:22px;}
+  .results-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .results-btn{font:inherit;font-size:13px;font-weight:600;padding:9px 18px;border-radius:9px;cursor:pointer;border:1px solid #283a5e;background:#101a32;color:#dce5f5;}
+  .results-btn:hover{border-color:#4a6296;}
+  .results-btn.primary{background:#21426e;border-color:#4a6296;color:#eaf2ff;}
+</style>
+</head>
+<body>
+<div class="pes-root">
+
+  <div class="brand-mark">
+    <span class="brand-text">Lava Lab Science</span>
+  </div>
+
+  <div class="panel header">
+    <div>
+      <div class="eyebrow">Photoelectron Spectroscopy · Simulated</div>
+      <div class="title">PES Spectrometer</div>
+    </div>
+    <div class="readouts">
+      <div class="readout"><div class="eyebrow" style="letter-spacing:.18em">Element</div><div class="val" id="ro-name">—</div></div>
+      <div class="readout"><div class="eyebrow" style="letter-spacing:.18em">Z</div><div class="val mono" id="ro-z">—</div></div>
+      <div class="readout"><div class="eyebrow" style="letter-spacing:.18em">Σ electrons</div><div class="val mono" id="ro-e">—</div></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn on" id="tab-explore">Explore</button>
+    <button class="tab-btn" id="tab-quiz">Quiz</button>
+  </div>
+
+  <div id="explore-view">
+    <div class="pes-grid">
+      <div class="panel table-wrap">
+        <div class="table-head">
+          <span class="eyebrow">Select element</span>
+          <span class="hint">H – Zn available</span>
+        </div>
+        <div id="ptable"></div>
+        <div class="row">
+          <label class="compare-label">
+            <span class="eyebrow" style="letter-spacing:.16em">Compare with</span>
+            <select class="pes-select mono" id="compare-select"></select>
+          </label>
+          <button class="clear-btn mono" id="clear-btn" style="display:none;">clear overlay ✕</button>
+          <span class="note">Click the table to graph an element, or <b>shift-click</b> to set the overlay.</span>
+        </div>
+      </div>
+
+      <div class="panel info-panel">
+        <div>
+          <span class="eyebrow">Electron configuration</span>
+          <div class="config-val mono" id="config-a"></div>
+          <div class="config-b mono" id="config-b" style="display:none;"></div>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <span class="eyebrow">Reading the spectrum</span>
+          <ul class="legend-list">
+            <li><b>Position →</b> binding energy: how tightly the electrons are held.</li>
+            <li><b>Height →</b> number of electrons in that subshell.</li>
+            <li><b>Left → right →</b> core electrons to valence electrons.</li>
+          </ul>
+        </div>
+        <div class="chips">
+          <span class="chip" style="color:#F4B860;border-color:#F4B86066;background:#F4B86014;">s-subshell</span>
+          <span class="chip" style="color:#46D4C3;border-color:#46D4C366;background:#46D4C314;">p-subshell</span>
+          <span class="chip" style="color:#B498F5;border-color:#B498F566;background:#B498F514;">d-subshell</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel spectrum-panel">
+      <div class="spec-head">
+        <span class="eyebrow">Spectrum</span>
+        <div class="axis-controls">
+          <span class="hint">Binding-energy axis</span>
+          <div class="seg" role="group" aria-label="Axis scale">
+            <button id="axis-log" class="on">Log</button>
+            <button id="axis-linear">Linear</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrap" id="chart-wrap"></div>
+      <div class="legend-row" id="legend-row" style="display:none;"></div>
+    </div>
+
+    <div class="footnote">
+      Binding energies are simulated instructional values (MJ/mol), consistent with the electron configuration shown for each element (Cr and Cu reflect the standard 4s¹3d⁵ / 4s¹3d¹⁰ anomalies). Peak heights are set from electron configuration, so each spectrum's electron counts sum to the atomic number. The far-left core peaks span hundreds of MJ/mol while valence peaks sit near 0.5–1 — use the <b>Log</b> axis to see them all at once, or <b>Linear</b> for the true College Board spacing.
+    </div>
+  </div>
+
+  <div id="quiz-view" style="display:none;"></div>
+
+</div>
+
+<script>
+// ── Photoelectron Spectroscopy data (binding energies in MJ/mol, simulated) ──
+const DATA = [
+  { name: "Hydrogen", sym: "H", z: 1, peaks: [{ sub: "1s", e: 1, be: 1.31 }] },
+  { name: "Helium", sym: "He", z: 2, peaks: [{ sub: "1s", e: 2, be: 2.37 }] },
+  { name: "Lithium", sym: "Li", z: 3, peaks: [{ sub: "1s", e: 2, be: 6.26 }, { sub: "2s", e: 1, be: 0.52 }] },
+  { name: "Beryllium", sym: "Be", z: 4, peaks: [{ sub: "1s", e: 2, be: 11.5 }, { sub: "2s", e: 2, be: 0.9 }] },
+  { name: "Boron", sym: "B", z: 5, peaks: [{ sub: "1s", e: 2, be: 19.3 }, { sub: "2s", e: 2, be: 1.36 }, { sub: "2p", e: 1, be: 0.8 }] },
+  { name: "Carbon", sym: "C", z: 6, peaks: [{ sub: "1s", e: 2, be: 28.6 }, { sub: "2s", e: 2, be: 1.72 }, { sub: "2p", e: 2, be: 1.09 }] },
+  { name: "Nitrogen", sym: "N", z: 7, peaks: [{ sub: "1s", e: 2, be: 39.6 }, { sub: "2s", e: 2, be: 2.45 }, { sub: "2p", e: 3, be: 1.4 }] },
+  { name: "Oxygen", sym: "O", z: 8, peaks: [{ sub: "1s", e: 2, be: 52.6 }, { sub: "2s", e: 2, be: 3.04 }, { sub: "2p", e: 4, be: 1.31 }] },
+  { name: "Fluorine", sym: "F", z: 9, peaks: [{ sub: "1s", e: 2, be: 67.2 }, { sub: "2s", e: 2, be: 3.88 }, { sub: "2p", e: 5, be: 1.68 }] },
+  { name: "Neon", sym: "Ne", z: 10, peaks: [{ sub: "1s", e: 2, be: 84.0 }, { sub: "2s", e: 2, be: 4.68 }, { sub: "2p", e: 6, be: 2.08 }] },
+  { name: "Sodium", sym: "Na", z: 11, peaks: [{ sub: "1s", e: 2, be: 104.0 }, { sub: "2s", e: 2, be: 6.84 }, { sub: "2p", e: 6, be: 3.67 }, { sub: "3s", e: 1, be: 0.5 }] },
+  { name: "Magnesium", sym: "Mg", z: 12, peaks: [{ sub: "1s", e: 2, be: 126.0 }, { sub: "2s", e: 2, be: 9.07 }, { sub: "2p", e: 6, be: 5.31 }, { sub: "3s", e: 2, be: 0.74 }] },
+  { name: "Aluminum", sym: "Al", z: 13, peaks: [{ sub: "1s", e: 2, be: 151.0 }, { sub: "2s", e: 2, be: 12.1 }, { sub: "2p", e: 6, be: 7.19 }, { sub: "3s", e: 2, be: 1.09 }, { sub: "3p", e: 1, be: 0.58 }] },
+  { name: "Silicon", sym: "Si", z: 14, peaks: [{ sub: "1s", e: 2, be: 178.0 }, { sub: "2s", e: 2, be: 15.1 }, { sub: "2p", e: 6, be: 10.3 }, { sub: "3s", e: 2, be: 1.46 }, { sub: "3p", e: 2, be: 0.79 }] },
+  { name: "Phosphorus", sym: "P", z: 15, peaks: [{ sub: "1s", e: 2, be: 208.0 }, { sub: "2s", e: 2, be: 18.7 }, { sub: "2p", e: 6, be: 13.5 }, { sub: "3s", e: 2, be: 1.95 }, { sub: "3p", e: 3, be: 1.06 }] },
+  { name: "Sulfur", sym: "S", z: 16, peaks: [{ sub: "1s", e: 2, be: 239.0 }, { sub: "2s", e: 2, be: 22.7 }, { sub: "2p", e: 6, be: 16.5 }, { sub: "3s", e: 2, be: 2.05 }, { sub: "3p", e: 4, be: 1.0 }] },
+  { name: "Chlorine", sym: "Cl", z: 17, peaks: [{ sub: "1s", e: 2, be: 273.0 }, { sub: "2s", e: 2, be: 26.8 }, { sub: "2p", e: 6, be: 20.2 }, { sub: "3s", e: 2, be: 2.44 }, { sub: "3p", e: 5, be: 1.25 }] },
+  { name: "Argon", sym: "Ar", z: 18, peaks: [{ sub: "1s", e: 2, be: 309.0 }, { sub: "2s", e: 2, be: 31.5 }, { sub: "2p", e: 6, be: 24.1 }, { sub: "3s", e: 2, be: 2.82 }, { sub: "3p", e: 6, be: 1.52 }] },
+  { name: "Potassium", sym: "K", z: 19, peaks: [{ sub: "1s", e: 2, be: 347.0 }, { sub: "2s", e: 2, be: 37.1 }, { sub: "2p", e: 6, be: 29.1 }, { sub: "3s", e: 2, be: 3.93 }, { sub: "3p", e: 6, be: 2.38 }, { sub: "4s", e: 1, be: 0.42 }] },
+  { name: "Calcium", sym: "Ca", z: 20, peaks: [{ sub: "1s", e: 2, be: 390.0 }, { sub: "2s", e: 2, be: 42.7 }, { sub: "2p", e: 6, be: 34.0 }, { sub: "3s", e: 2, be: 4.65 }, { sub: "3p", e: 6, be: 2.9 }, { sub: "4s", e: 2, be: 0.59 }] },
+  { name: "Scandium", sym: "Sc", z: 21, peaks: [{ sub: "1s", e: 2, be: 433.0 }, { sub: "2s", e: 2, be: 48.5 }, { sub: "2p", e: 6, be: 39.2 }, { sub: "3s", e: 2, be: 5.44 }, { sub: "3p", e: 6, be: 3.24 }, { sub: "3d", e: 1, be: 0.77 }, { sub: "4s", e: 2, be: 0.63 }] },
+  { name: "Titanium", sym: "Ti", z: 22, peaks: [{ sub: "1s", e: 2, be: 468.0 }, { sub: "2s", e: 2, be: 53.3 }, { sub: "2p", e: 6, be: 43.3 }, { sub: "3s", e: 2, be: 6.05 }, { sub: "3p", e: 6, be: 3.61 }, { sub: "3d", e: 2, be: 0.83 }, { sub: "4s", e: 2, be: 0.66 }] },
+  { name: "Vanadium", sym: "V", z: 23, peaks: [{ sub: "1s", e: 2, be: 505.0 }, { sub: "2s", e: 2, be: 58.3 }, { sub: "2p", e: 6, be: 47.6 }, { sub: "3s", e: 2, be: 6.69 }, { sub: "3p", e: 6, be: 4.0 }, { sub: "3d", e: 3, be: 0.9 }, { sub: "4s", e: 2, be: 0.69 }] },
+  { name: "Chromium", sym: "Cr", z: 24, peaks: [{ sub: "1s", e: 2, be: 544.0 }, { sub: "2s", e: 2, be: 63.5 }, { sub: "2p", e: 6, be: 52.1 }, { sub: "3s", e: 2, be: 7.35 }, { sub: "3p", e: 6, be: 4.41 }, { sub: "3d", e: 5, be: 0.97 }, { sub: "4s", e: 1, be: 0.66 }] },
+  { name: "Manganese", sym: "Mn", z: 25, peaks: [{ sub: "1s", e: 2, be: 585.0 }, { sub: "2s", e: 2, be: 69.0 }, { sub: "2p", e: 6, be: 56.8 }, { sub: "3s", e: 2, be: 8.04 }, { sub: "3p", e: 6, be: 4.83 }, { sub: "3d", e: 5, be: 1.07 }, { sub: "4s", e: 2, be: 0.72 }] },
+  { name: "Iron", sym: "Fe", z: 26, peaks: [{ sub: "1s", e: 2, be: 628.0 }, { sub: "2s", e: 2, be: 74.7 }, { sub: "2p", e: 6, be: 61.7 }, { sub: "3s", e: 2, be: 8.76 }, { sub: "3p", e: 6, be: 5.28 }, { sub: "3d", e: 6, be: 1.14 }, { sub: "4s", e: 2, be: 0.76 }] },
+  { name: "Cobalt", sym: "Co", z: 27, peaks: [{ sub: "1s", e: 2, be: 673.0 }, { sub: "2s", e: 2, be: 80.6 }, { sub: "2p", e: 6, be: 66.8 }, { sub: "3s", e: 2, be: 9.5 }, { sub: "3p", e: 6, be: 5.74 }, { sub: "3d", e: 7, be: 1.22 }, { sub: "4s", e: 2, be: 0.79 }] },
+  { name: "Nickel", sym: "Ni", z: 28, peaks: [{ sub: "1s", e: 2, be: 720.0 }, { sub: "2s", e: 2, be: 86.8 }, { sub: "2p", e: 6, be: 72.1 }, { sub: "3s", e: 2, be: 10.28 }, { sub: "3p", e: 6, be: 6.22 }, { sub: "3d", e: 8, be: 1.3 }, { sub: "4s", e: 2, be: 0.82 }] },
+  { name: "Copper", sym: "Cu", z: 29, peaks: [{ sub: "1s", e: 2, be: 769.0 }, { sub: "2s", e: 2, be: 93.2 }, { sub: "2p", e: 6, be: 77.7 }, { sub: "3s", e: 2, be: 11.06 }, { sub: "3p", e: 6, be: 6.72 }, { sub: "3d", e: 10, be: 1.32 }, { sub: "4s", e: 1, be: 0.75 }] },
+  { name: "Zinc", sym: "Zn", z: 30, peaks: [{ sub: "1s", e: 2, be: 820.0 }, { sub: "2s", e: 2, be: 99.9 }, { sub: "2p", e: 6, be: 83.5 }, { sub: "3s", e: 2, be: 11.87 }, { sub: "3p", e: 6, be: 7.24 }, { sub: "3d", e: 10, be: 1.45 }, { sub: "4s", e: 2, be: 0.91 }] },
+];
+const BY_SYM = Object.fromEntries(DATA.map(d => [d.sym, d]));
+const PLACE = {
+  H:[1,1], He:[1,18],
+  Li:[2,1], Be:[2,2], B:[2,13], C:[2,14], N:[2,15], O:[2,16], F:[2,17], Ne:[2,18],
+  Na:[3,1], Mg:[3,2], Al:[3,13], Si:[3,14], P:[3,15], S:[3,16], Cl:[3,17], Ar:[3,18],
+  K:[4,1], Ca:[4,2], Sc:[4,3], Ti:[4,4], V:[4,5], Cr:[4,6], Mn:[4,7], Fe:[4,8], Co:[4,9], Ni:[4,10], Cu:[4,11], Zn:[4,12],
+};
+const SUB_COLOR = { s: "#F4B860", p: "#46D4C3", d: "#B498F5" };
+const subColor = sub => SUB_COLOR[sub[1]] || "#9fb0d4";
+const SUPMAP = {0:"⁰",1:"¹",2:"²",3:"³",4:"⁴",5:"⁵",6:"⁶",7:"⁷",8:"⁸",9:"⁹",10:"¹⁰"};
+const sup = n => SUPMAP[n] ?? String(n).split("").map(c => SUPMAP[c] ?? c).join("");
+const LORDER = { s:0, p:1, d:2, f:3 };
+function configString(el){
+  return [...el.peaks].sort((a,b)=> Number(a.sub[0])-Number(b.sub[0]) || LORDER[a.sub[1]]-LORDER[b.sub[1]])
+    .map(p => p.sub + sup(p.e)).join(" ");
+}
+function valenceN(el){ return Math.max(...el.peaks.map(p => Number(p.sub[0]))); }
+function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function pick(arr,n){ return shuffle(arr).slice(0,n); }
+
+const VB_W = 1000, VB_H = 470;
+const M = { l:58, r:26, t:34, b:64 };
+const PW = VB_W - M.l - M.r;
+const PH = VB_H - M.t - M.b;
+const BASE_Y = M.t + PH;
+
+const state = { mode: "explore", selA: "C", selB: null, axis: "log", hover: null,
+  quiz: { tier: null, questions: [], idx: 0, score: 0, answered: false } };
+
+// ───────────────────────── Explore mode ─────────────────────────
+
+function computeGeo(){
+  const shown = state.selB ? [BY_SYM[state.selA], BY_SYM[state.selB]] : [BY_SYM[state.selA]];
+  const allPeaks = shown.flatMap(el => el.peaks);
+  const beMax = Math.max(...allPeaks.map(p => p.be)) * 1.08;
+  const beMin = Math.min(0.3, Math.min(...allPeaks.map(p => p.be)) * 0.7);
+  const maxE = Math.max(...allPeaks.map(p => p.e));
+  const yDenom = maxE + 1;
+  const lo = Math.log10(beMin), hi = Math.log10(beMax);
+  const X = be => {
+    const frac = state.axis === "log"
+      ? (hi - Math.log10(be)) / (hi - lo)
+      : (beMax - be) / (beMax - beMin);
+    return M.l + frac * PW;
+  };
+  const Y = intensity => BASE_Y - (intensity / yDenom) * PH;
+  const w = Math.max(5.5, PW / 115);
+
+  function trace(el){
+    const centers = el.peaks.map(p => ({ cx: X(p.be), e: p.e }));
+    const pts = [];
+    for (let sx = M.l; sx <= M.l + PW; sx += 2.5){
+      let inten = 0;
+      for (const c of centers){
+        const d = sx - c.cx;
+        inten += c.e * Math.exp(-(d*d)/(2*w*w));
+      }
+      pts.push(sx.toFixed(1) + "," + Y(inten).toFixed(1));
+    }
+    const fill = "M" + M.l + "," + BASE_Y + " L" + pts.join(" L") + " L" + (M.l+PW) + "," + BASE_Y + " Z";
+    const line = "M" + pts.join(" L");
+    return { fill, line };
+  }
+
+  function labelFor(el){
+    const sorted = [...el.peaks].map(p => ({ ...p, cx: X(p.be), apexY: Y(p.e) })).sort((a,b)=>a.cx-b.cx);
+    let lastCx = -999, row = 0;
+    return sorted.map(p => {
+      if (p.cx - lastCx < 46) row += 1; else row = 0;
+      lastCx = p.cx;
+      return { ...p, labelY: Math.max(M.t + 8, p.apexY - 14 - row*18) };
+    });
+  }
+
+  const elA = BY_SYM[state.selA];
+  const elB = state.selB ? BY_SYM[state.selB] : null;
+
+  return {
+    X, Y, beMax, beMin, maxE, yDenom,
+    elA, elB,
+    traceA: trace(elA), labelsA: labelFor(elA),
+    traceB: elB ? trace(elB) : null, labelsB: elB ? labelFor(elB) : null,
+  };
+}
+
+function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+
+function renderPeriodicTable(){
+  const wrap = document.getElementById("ptable");
+  wrap.innerHTML = DATA.map(el => {
+    const [p,g] = PLACE[el.sym];
+    const isA = state.selA === el.sym, isB = state.selB === el.sym;
+    const cls = "ptbtn" + (isA ? " aSel" : "") + (isB ? " bSel" : "");
+    return `<button type="button" class="${cls}" style="grid-column:${g};grid-row:${p};"
+      data-sym="${el.sym}" title="${escAttr(el.name + ' — ' + configString(el))}">
+      <span class="z mono">${el.z}</span><span class="sy">${el.sym}</span>
+    </button>`;
+  }).join("");
+  wrap.querySelectorAll(".ptbtn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const sym = btn.dataset.sym;
+      if (e.shiftKey){
+        state.selB = state.selB === sym ? null : sym;
+      } else {
+        state.selA = sym;
+        if (state.selB === sym) state.selB = null;
+      }
+      state.hover = null;
+      renderExplore();
+    });
+  });
+}
+
+function renderCompareSelect(){
+  const sel = document.getElementById("compare-select");
+  sel.innerHTML = '<option value="">None</option>' + DATA
+    .filter(el => el.sym !== state.selA)
+    .map(el => `<option value="${el.sym}"${state.selB===el.sym?" selected":""}>${el.sym} — ${el.name}</option>`)
+    .join("");
+  sel.onchange = () => {
+    state.selB = sel.value || null;
+    state.hover = null;
+    renderExplore();
+  };
+  const clearBtn = document.getElementById("clear-btn");
+  clearBtn.style.display = state.selB ? "inline-block" : "none";
+  clearBtn.onclick = () => { state.selB = null; state.hover = null; renderExplore(); };
+}
+
+function renderInfo(){
+  const elA = BY_SYM[state.selA];
+  document.getElementById("ro-name").textContent = elA.sym + " · " + elA.name;
+  document.getElementById("ro-z").textContent = elA.z;
+  document.getElementById("ro-e").textContent = elA.peaks.reduce((s,p)=>s+p.e,0);
+  document.getElementById("config-a").textContent = configString(elA);
+  const cb = document.getElementById("config-b");
+  if (state.selB){
+    const elB = BY_SYM[state.selB];
+    cb.style.display = "block";
+    cb.textContent = elB.sym + ": " + configString(elB);
+  } else {
+    cb.style.display = "none";
+  }
+}
+
+function renderAxisButtons(){
+  document.getElementById("axis-log").classList.toggle("on", state.axis === "log");
+  document.getElementById("axis-linear").classList.toggle("on", state.axis === "linear");
+}
+
+function renderTooltip(geo){
+  const wrap = document.getElementById("chart-wrap");
+  let tt = wrap.querySelector(".tooltip");
+  if (tt) tt.remove();
+  if (!state.hover) return;
+  const h = state.hover;
+  tt = document.createElement("div");
+  tt.className = "tooltip";
+  tt.style.border = "1px solid " + h.color;
+  tt.style.boxShadow = "0 0 22px -8px " + h.color;
+  tt.innerHTML = `
+    <div class="tt-head">
+      <span class="tt-sub mono" style="color:${h.color}">${h.sub}${sup(h.e)}</span>
+      <span class="tt-el">${h.elSym}</span>
+    </div>
+    <div class="tt-be mono">${h.be} MJ/mol</div>
+    <div class="tt-desc">${h.e} electron${h.e>1?"s":""} · ${h.isVal ? "valence subshell, loosely held" : "core subshell, tightly held"}</div>
+  `;
+  wrap.appendChild(tt);
+}
+
+function renderLegendRow(geo){
+  const row = document.getElementById("legend-row");
+  if (!geo.elB){ row.style.display = "none"; row.innerHTML=""; return; }
+  row.style.display = "flex";
+  row.innerHTML = `
+    <span><span style="width:20px;height:0;border-top:2.4px solid #bfeaff;display:inline-block;"></span>${geo.elA.sym} — ${geo.elA.name}</span>
+    <span><span style="width:20px;height:0;border-top:2px dashed #c7a3ff;display:inline-block;"></span>${geo.elB.sym} — ${geo.elB.name}</span>
+  `;
+}
+
+function renderChart(){
+  const geo = computeGeo();
+  const wrap = document.getElementById("chart-wrap");
+
+  const yGrid = Array.from({length: geo.maxE+1}, (_,i)=>i).map(n => `
+    <g>
+      <line x1="${M.l}" y1="${geo.Y(n)}" x2="${M.l+PW}" y2="${geo.Y(n)}" stroke="#1b294a" stroke-width="1"/>
+      <text x="${M.l-9}" y="${geo.Y(n)+4}" text-anchor="end" class="mono" font-size="11" fill="#5f7298">${n}</text>
+    </g>`).join("");
+
+  let overlayB = "";
+  if (geo.elB && geo.traceB){
+    const dots = geo.labelsB.map(p => `
+      <g>
+        <line x1="${p.cx}" y1="${geo.Y(p.e)}" x2="${p.cx}" y2="${BASE_Y}" stroke="#c7a3ff" stroke-width="1" opacity="0.5"/>
+        <circle cx="${p.cx}" cy="${geo.Y(p.e)}" r="3" fill="#c7a3ff"/>
+      </g>`).join("");
+    overlayB = `
+      <path d="${geo.traceB.line}" class="trace-line" stroke="#c7a3ff" stroke-width="2" stroke-dasharray="6 5" opacity="0.85"/>
+      ${dots}`;
+  }
+
+  const peaksA = geo.labelsA.map((p, i) => {
+    const c = subColor(p.sub);
+    const isVal = Number(p.sub[0]) === valenceN(geo.elA);
+    return `
+      <g class="pop" style="animation-delay:${(0.35 + i*0.06).toFixed(2)}s">
+        <line x1="${p.cx}" y1="${geo.Y(p.e)}" x2="${p.cx}" y2="${BASE_Y}" stroke="${c}" stroke-width="1.4" opacity="0.7"/>
+        <circle cx="${p.cx}" cy="${geo.Y(p.e)}" r="4.2" fill="${c}" stroke="#070b18" stroke-width="1"/>
+        <text x="${p.cx}" y="${p.labelY}" text-anchor="middle" class="mono" font-size="13" font-weight="600" fill="${c}">${p.sub}${sup(p.e)}</text>
+        <rect class="hit" data-sub="${p.sub}" data-e="${p.e}" data-be="${p.be}" data-color="${c}" data-isval="${isVal}"
+          x="${p.cx-16}" y="${M.t}" width="32" height="${PH}" fill="transparent" style="cursor:pointer;"/>
+      </g>`;
+  }).join("");
+
+  const xTicksSorted = [...geo.elA.peaks].sort((a,b)=>geo.X(a.be)-geo.X(b.be));
+  const xTicks = xTicksSorted.map((p,i,arr) => {
+    const x = geo.X(p.be);
+    const prev = i>0 ? geo.X(arr[i-1].be) : -99;
+    const stagger = (x - prev < 40) ? 16 : 0;
+    return `
+      <g>
+        <line x1="${x}" y1="${BASE_Y}" x2="${x}" y2="${BASE_Y+5}" stroke="#3a4d74" stroke-width="1"/>
+        <text x="${x}" y="${BASE_Y+17+stagger}" text-anchor="middle" class="mono" font-size="10.5" fill="#7d8fb6">${p.be}</text>
+      </g>`;
+  }).join("");
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${VB_W} ${VB_H}">
+      <defs>
+        <linearGradient id="fillA" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#7fd9ff" stop-opacity="0.34"/>
+          <stop offset="100%" stop-color="#7fd9ff" stop-opacity="0.02"/>
+        </linearGradient>
+        <filter id="glow" x="-20%" y="-40%" width="140%" height="200%">
+          <feGaussianBlur stdDeviation="3.2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      ${yGrid}
+      <line x1="${M.l}" y1="${BASE_Y}" x2="${M.l+PW}" y2="${BASE_Y}" stroke="#3a4d74" stroke-width="1.5"/>
+      <line x1="${M.l}" y1="${M.t}" x2="${M.l}" y2="${BASE_Y}" stroke="#3a4d74" stroke-width="1.5"/>
+      ${overlayB}
+      <path d="${geo.traceA.fill}" fill="url(#fillA)" stroke="none"/>
+      <path class="trace-line anim-draw" d="${geo.traceA.line}" pathLength="1" stroke="#bfeaff" stroke-width="2.4" filter="url(#glow)"/>
+      ${peaksA}
+      ${xTicks}
+      <text x="${M.l+PW/2}" y="${VB_H-6}" text-anchor="middle" font-size="12.5" fill="#9fb0d4" font-weight="600">Binding energy (MJ/mol)</text>
+      <text transform="translate(15 ${M.t+PH/2}) rotate(-90)" text-anchor="middle" font-size="12.5" fill="#9fb0d4" font-weight="600">Relative number of electrons</text>
+      <text x="${M.l+4}" y="${M.t+13}" font-size="10.5" fill="#5f7298" class="mono">◄ core / tightly held</text>
+      <text x="${M.l+PW-4}" y="${M.t+13}" text-anchor="end" font-size="10.5" fill="#5f7298" class="mono">valence / loosely held ►</text>
+    </svg>
+  `;
+
+  wrap.querySelectorAll(".hit").forEach(rect => {
+    const use = () => {
+      state.hover = {
+        sub: rect.dataset.sub, e: Number(rect.dataset.e), be: Number(rect.dataset.be),
+        color: rect.dataset.color, isVal: rect.dataset.isval === "true", elSym: geo.elA.sym,
+      };
+      renderTooltip(geo);
+    };
+    rect.addEventListener("mouseenter", use);
+    rect.addEventListener("click", use);
+  });
+  wrap.querySelector("svg").addEventListener("mouseleave", () => {
+    state.hover = null;
+    renderTooltip(geo);
+  });
+
+  renderTooltip(geo);
+  renderLegendRow(geo);
+}
+
+function renderExplore(){
+  renderPeriodicTable();
+  renderCompareSelect();
+  renderInfo();
+  renderAxisButtons();
+  renderChart();
+}
+
+document.getElementById("axis-log").addEventListener("click", () => { state.axis = "log"; renderExplore(); });
+document.getElementById("axis-linear").addEventListener("click", () => { state.axis = "linear"; renderExplore(); });
+
+// ───────────────────────── Quiz mode ─────────────────────────
+
+const EASY_POOL = DATA.filter(d => d.z <= 12);
+const MEDIUM_POOL = DATA.filter(d => d.z >= 13 && d.z <= 20);
+const HARD_POOL = DATA.filter(d => d.z >= 21 && d.z <= 30);
+
+function miniSpectrum(el, opts){
+  opts = opts || {};
+  const w = opts.w || 240, h = opts.h || 130, pad = 16;
+  const beMax = Math.max(...el.peaks.map(p=>p.be)) * 1.12;
+  const beMin = Math.min(0.3, Math.min(...el.peaks.map(p=>p.be)) * 0.6);
+  const maxE = Math.max(...el.peaks.map(p=>p.e));
+  const yDenom = maxE + 1;
+  const lo = Math.log10(beMin), hi = Math.log10(beMax);
+  const iw = w - pad*2, ih = h - pad*2;
+  const X = be => pad + ((hi - Math.log10(be)) / (hi - lo)) * iw;
+  const Y = inten => pad + ih - (inten / yDenom) * ih;
+  const wg = Math.max(3, iw/38);
+  const centers = el.peaks.map(p => ({ cx: X(p.be), e: p.e }));
+  const pts = [];
+  for (let sx = pad; sx <= pad + iw; sx += 2){
+    let inten = 0;
+    for (const c of centers){ const d = sx - c.cx; inten += c.e * Math.exp(-(d*d)/(2*wg*wg)); }
+    pts.push(sx.toFixed(1) + "," + Y(inten).toFixed(1));
+  }
+  const line = "M" + pts.join(" L");
+  const fill = "M" + pad + "," + (pad+ih) + " L" + pts.join(" L") + " L" + (pad+iw) + "," + (pad+ih) + " Z";
+  let marker = "";
+  if (opts.highlightIdx != null){
+    const p = el.peaks[opts.highlightIdx];
+    const cx = X(p.be), cy = Y(p.e);
+    marker = `<circle cx="${cx}" cy="${cy}" r="7" fill="none" stroke="#F4B860" stroke-width="2.4"/>
+      <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${pad+ih}" stroke="#F4B860" stroke-width="1.4" stroke-dasharray="3 3"/>`;
+  }
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block;">
+    <rect x="0" y="0" width="${w}" height="${h}" fill="#0b1226" rx="8"/>
+    <line x1="${pad}" y1="${pad+ih}" x2="${pad+iw}" y2="${pad+ih}" stroke="#2a3a5c" stroke-width="1"/>
+    <path d="${fill}" fill="#7fd9ff" fill-opacity="0.18"/>
+    <path d="${line}" fill="none" stroke="#bfeaff" stroke-width="1.8"/>
+    ${marker}
+  </svg>`;
+}
+
+function optRangeMax(letter){ return letter === "d" ? 10 : 6; }
+
+function genPeakToSubshell(pool){
+  const el = pick(pool,1)[0];
+  const idx = Math.floor(Math.random()*el.peaks.length);
+  const peak = el.peaks[idx];
+  const visual = miniSpectrum(el, { highlightIdx: idx });
+  let candidates = Array.from(new Set(pool.flatMap(e=>e.peaks.map(p=>p.sub)))).filter(s=>s!==peak.sub);
+  candidates = shuffle(candidates).slice(0,3);
+  const options = shuffle([peak.sub, ...candidates]);
+  return {
+    prompt: `This is the PES spectrum for <b>${el.name} (${el.sym})</b>. Which subshell produces the highlighted (circled) peak?`,
+    visual, options, correctIndex: options.indexOf(peak.sub),
+    explanation: `The circled peak sits at ${peak.be} MJ/mol with a relative height corresponding to ${peak.e} electron${peak.e>1?"s":""} — that matches the <b>${peak.sub}</b> subshell in ${el.sym}'s configuration (${configString(el)}).`
+  };
+}
+
+function genElectronCount(pool){
+  const el = pick(pool,1)[0];
+  const idx = Math.floor(Math.random()*el.peaks.length);
+  const peak = el.peaks[idx];
+  const visual = miniSpectrum(el, { highlightIdx: idx });
+  const letter = peak.sub[1];
+  const cap = optRangeMax(letter);
+  const opts = new Set([peak.e]);
+  let guard = 0;
+  while (opts.size < 4 && guard < 50){ opts.add(1 + Math.floor(Math.random()*cap)); guard++; }
+  const options = shuffle([...opts].map(String));
+  return {
+    prompt: `Looking at the highlighted peak on ${el.sym}'s spectrum, how many electrons occupy this subshell?`,
+    visual, options, correctIndex: options.indexOf(String(peak.e)),
+    explanation: `Peak height is proportional to electron count. ${el.sym}'s ${peak.sub} subshell holds <b>${peak.e}</b> electron${peak.e>1?"s":""}, which is why the peak has that relative height.`
+  };
+}
+
+function genSpectrumToElement(pool){
+  const el = pick(pool,1)[0];
+  const visual = miniSpectrum(el);
+  const distractors = pick(pool.filter(e=>e.sym!==el.sym), 3);
+  const choices = shuffle([el, ...distractors]);
+  const options = choices.map(e => `${e.sym} — ${e.name}`);
+  return {
+    prompt: `This spectrum shows <b>${el.peaks.length}</b> distinct peak${el.peaks.length>1?"s":""}. Which element produced it?`,
+    visual, options, correctIndex: choices.indexOf(el),
+    explanation: `${el.sym} (${el.name}) has the configuration ${configString(el)}, giving exactly ${el.peaks.length} peak${el.peaks.length>1?"s":""} — matching the spectrum shown.`
+  };
+}
+
+function genConfigToSpectrum(pool){
+  const el = pick(pool,1)[0];
+  const distractors = pick(pool.filter(e=>e.sym!==el.sym), 3);
+  const choices = shuffle([el, ...distractors]);
+  const options = choices.map(e => ({ label: e.sym, svg: miniSpectrum(e) }));
+  return {
+    prompt: `An element has the electron configuration <b>${configString(el)}</b>. Which spectrum matches?`,
+    visual: null, options, correctIndex: choices.indexOf(el),
+    explanation: `${configString(el)} belongs to <b>${el.sym} (${el.name})</b>, which produces ${el.peaks.length} peak${el.peaks.length>1?"s":""} at the binding energies shown.`
+  };
+}
+
+function genAnomaly(target){
+  const el = BY_SYM[target];
+  const isCr = target === "Cr";
+  const rightConfig = isCr ? "[Ar] 4s¹ 3d⁵" : "[Ar] 4s¹ 3d¹⁰";
+  const wrongConfig = isCr ? "[Ar] 4s² 3d⁴" : "[Ar] 4s² 3d⁹";
+  const distractor2 = isCr ? "[Ar] 4s⁰ 3d⁶" : "[Ar] 4s⁰ 3d¹¹";
+  const distractor3 = isCr ? "[Ar] 4s² 3d³ 4p¹" : "[Ar] 4s² 3d⁸ 4p¹";
+  const options = shuffle([rightConfig, wrongConfig, distractor2, distractor3]);
+  return {
+    prompt: `<b>${el.name} (${el.sym})</b> is a well-known exception to the expected Aufbau filling order. Which electron configuration is actually observed?`,
+    visual: miniSpectrum(el),
+    options, correctIndex: options.indexOf(rightConfig),
+    explanation: `${el.sym} adopts <b>${rightConfig}</b> instead of the "expected" ${wrongConfig}. A ${isCr ? "half-filled" : "fully-filled"} 3d subshell is unusually stable, so one electron shifts from 4s into 3d.`
+  };
+}
+
+const TIERS = {
+  easy: { label:"Easy", sub:"H – Mg · reading basic spectra", color:"#46D4C3", pool: EASY_POOL,
+    gens:[genPeakToSubshell, genElectronCount, genSpectrumToElement, genConfigToSpectrum], n:8 },
+  medium: { label:"Medium", sub:"Al – Ca · more peaks, subtler reads", color:"#F4B860", pool: MEDIUM_POOL,
+    gens:[genPeakToSubshell, genElectronCount, genSpectrumToElement, genConfigToSpectrum], n:8 },
+  hard: { label:"Hard", sub:"Sc – Zn · transition metals + Aufbau exceptions", color:"#B498F5", pool: HARD_POOL,
+    gens:[genPeakToSubshell, genElectronCount, genSpectrumToElement, genConfigToSpectrum], n:8, forceSpecial:["Cr","Cu"] },
+};
+
+function buildQuiz(tierKey){
+  const tier = TIERS[tierKey];
+  const qs = [];
+  if (tier.forceSpecial) tier.forceSpecial.forEach(sym => qs.push(genAnomaly(sym)));
+  while (qs.length < tier.n){
+    const gen = tier.gens[Math.floor(Math.random()*tier.gens.length)];
+    qs.push(gen(tier.pool));
+  }
+  return shuffle(qs);
+}
+
+function tierSelectHTML(){
+  return `<div class="panel" style="padding:22px;">
+    <div class="eyebrow" style="margin-bottom:16px;">Choose a difficulty tier</div>
+    <div class="tier-grid">
+      ${Object.entries(TIERS).map(([key,t]) => `
+        <div class="tier-card" data-tier="${key}" style="border-color:${t.color}44;">
+          <div class="tier-name" style="color:${t.color};">${t.label}</div>
+          <div class="tier-sub">${t.sub}</div>
+          <div class="tier-meta">${t.n} questions · mixed format${t.forceSpecial ? " · includes Cr/Cu anomalies" : ""}</div>
+        </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function questionHTML(){
+  const q = state.quiz;
+  const question = q.questions[q.idx];
+  const tier = TIERS[q.tier];
+  const pct = Math.round((q.idx / q.questions.length) * 100);
+  const isVisualOpts = typeof question.options[0] === "object";
+  const optsHTML = isVisualOpts
+    ? `<div class="opt-grid-visual">${question.options.map((o,i)=>`
+        <button class="opt-btn visual" data-idx="${i}">${o.svg}<div class="opt-label mono">${o.label}</div></button>`).join("")}</div>`
+    : `<div class="opt-grid-text">${question.options.map((o,i)=>`
+        <button class="opt-btn" data-idx="${i}">${o}</button>`).join("")}</div>`;
+  return `
+    <div class="quiz-progress">
+      <span>Question ${q.idx+1} / ${q.questions.length}</span>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg, ${tier.color}, #7fd9ff);"></div></div>
+      <span class="mono">Score: ${q.score}</span>
+    </div>
+    <div class="panel q-card">
+      <div class="q-prompt">${question.prompt}</div>
+      ${question.visual ? `<div class="q-visual">${question.visual}</div>` : ""}
+      ${optsHTML}
+      <div id="feedback-area"></div>
+    </div>
+  `;
+}
+
+function resultsHTML(){
+  const q = state.quiz;
+  const tier = TIERS[q.tier];
+  const pct = Math.round((q.score / q.questions.length) * 100);
+  const level = pct >= 80 ? "Mastery" : pct >= 50 ? "Proficient" : "Needs review";
+  const levelColor = pct >= 80 ? "#46D4C3" : pct >= 50 ? "#F4B860" : "#FB7185";
+  return `
+    <div class="panel results-card">
+      <div class="eyebrow">${tier.label} tier complete</div>
+      <div class="results-score" style="color:${levelColor};">${q.score} / ${q.questions.length}</div>
+      <div class="results-label">${pct}% · <span style="color:${levelColor};font-weight:600;">${level}</span></div>
+      <div class="results-btns">
+        <button class="results-btn primary" id="retry-btn">Retry ${tier.label}</button>
+        <button class="results-btn" id="switch-tier-btn">Choose a different tier</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderQuiz(){
+  const view = document.getElementById("quiz-view");
+  const q = state.quiz;
+
+  if (!q.tier){
+    view.innerHTML = tierSelectHTML();
+    view.querySelectorAll(".tier-card").forEach(card => {
+      card.addEventListener("click", () => {
+        const key = card.dataset.tier;
+        state.quiz = { tier:key, questions: buildQuiz(key), idx:0, score:0, answered:false };
+        renderQuiz();
+      });
+    });
+    return;
+  }
+
+  if (q.idx >= q.questions.length){
+    view.innerHTML = resultsHTML();
+    document.getElementById("retry-btn").addEventListener("click", () => {
+      state.quiz = { tier: q.tier, questions: buildQuiz(q.tier), idx:0, score:0, answered:false };
+      renderQuiz();
+    });
+    document.getElementById("switch-tier-btn").addEventListener("click", () => {
+      state.quiz = { tier:null, questions:[], idx:0, score:0, answered:false };
+      renderQuiz();
+    });
+    return;
+  }
+
+  view.innerHTML = questionHTML();
+  const question = q.questions[q.idx];
+  view.querySelectorAll(".opt-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (q.answered) return;
+      q.answered = true;
+      const idx = Number(btn.dataset.idx);
+      const correct = idx === question.correctIndex;
+      if (correct) q.score += 1;
+      view.querySelectorAll(".opt-btn").forEach((b,i) => {
+        b.classList.add("locked");
+        if (i === question.correctIndex) b.classList.add("correct");
+        else if (i === idx) b.classList.add("incorrect");
+      });
+      const feedback = document.getElementById("feedback-area");
+      feedback.innerHTML = `
+        <div class="explain-box"><b>${correct ? "Correct." : "Not quite."}</b> ${question.explanation}</div>
+        <button class="next-btn" id="next-q-btn">${q.idx+1 < q.questions.length ? "Next question →" : "See results →"}</button>
+      `;
+      document.getElementById("next-q-btn").addEventListener("click", () => {
+        q.idx += 1; q.answered = false;
+        renderQuiz();
+      });
+    });
+  });
+}
+
+// ───────────────────────── Tabs / mode switching ─────────────────────────
+
+function renderTabs(){
+  document.getElementById("tab-explore").classList.toggle("on", state.mode === "explore");
+  document.getElementById("tab-quiz").classList.toggle("on", state.mode === "quiz");
+  document.getElementById("explore-view").style.display = state.mode === "explore" ? "" : "none";
+  document.getElementById("quiz-view").style.display = state.mode === "quiz" ? "" : "none";
+}
+
+function renderAll(){
+  renderTabs();
+  if (state.mode === "explore") renderExplore();
+  else renderQuiz();
+}
+
+document.getElementById("tab-explore").addEventListener("click", () => { state.mode = "explore"; renderAll(); });
+document.getElementById("tab-quiz").addEventListener("click", () => { state.mode = "quiz"; renderAll(); });
+
+renderAll();
+</script>
+</body>
+</html>
